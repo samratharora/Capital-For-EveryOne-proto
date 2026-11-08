@@ -8,6 +8,15 @@ A WHACK 2026 prototype for Capital One's "Make Credit Accessible" challenge: one
 - The AI never does maths. Every figure comes from a tested, deterministic finance layer (`lib/finance`).
 - Works fully offline, with no API key.
 
+## Demo people: watch the app reshape itself
+
+Open **More, then Demo people** (`/account/demo-people`). Five invented people with synthetic profiles (Margaret, 78,
+cataracts; Sam, 23, dyslexic and new to credit; Priya, night-shift nurse with irregular pay; David, recently bereaved
+with Parkinson's; Aisha, a planner who is colour blind). Pick one and the real profile model reads them live: what it
+sees, how sure it is of each type (the bars), and why. **Show their app** then plays the reshape on Home: their view,
+the model's layout for their type, then what they told Dial, each step gliding into place. A test fails if the model
+ever stops reading a demo person the way their story says (`lib/demo/people.test.ts`).
+
 ## Run it
 
 ```bash

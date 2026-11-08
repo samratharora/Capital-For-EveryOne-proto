@@ -18,6 +18,7 @@ import {
 import { formatDate, formatLongDate, formatMonth, formatPence, formatShortDate } from "@/lib/format";
 import { usePreferences } from "@/lib/preferences/provider";
 import { MlSuggestion } from "../personalise/ml-suggestion";
+import { DemoReshape } from "@/components/demo/demo-reshape";
 import { TailoredCard } from "../profile/tailored-card";
 import { DEFAULT_PREFS, VIEW_DEFAULTS, visibleWidgets, WIDGET_LABELS, type Layout, type WidgetId } from "@/lib/preferences/schema";
 import type { HomeSection } from "@/lib/dial/types";
@@ -569,6 +570,7 @@ export function HomeScreen({ focus }: { focus?: HomeSection }) {
   return (
     <div className="flex flex-col gap-(--space)">
       <h1 className="sr-only">{simple ? "Your bill" : "Account overview"}</h1>
+      <DemoReshape />
       {simple && <p className="text-sm text-muted-foreground lg:hidden">Credit card ending {d.account.cardLast4}</p>}
       {prefs.voiceFirst && (
         <button type="button" onClick={openVoice} className="elevated flex min-h-(--target-min) items-center justify-center gap-3 rounded-xl bg-primary px-5 text-lg font-bold text-primary-foreground">
@@ -622,6 +624,8 @@ export function HomeScreen({ focus }: { focus?: HomeSection }) {
           <div
             key={w}
             data-widget={w}
+            // Each section has its own transition name, so when the layout changes it glides to its new place.
+            style={{ viewTransitionName: `w-${w}` }}
             data-focused={flash?.widget === w ? "" : undefined}
             className={`relative scroll-mt-(--space) ${simple ? "" : (SPAN[w] ?? "@3xl:col-span-6")} ${prefs.layout.emphasis === w ? "widget-emphasis rounded-xl" : ""} [&>*]:h-full`}
             aria-label={prefs.layout.emphasis === w ? `${WIDGET_LABELS[w]}, highlighted by you` : undefined}

@@ -593,3 +593,113 @@ body:has(> * nav[aria-label="Main"]) {
   }
   :root[data-reach="thumb"] #main { order: 1; }
 }
+
+/* ── Demo people and the reshape (components/demo) ────────────────────────────────────────────────────────────────
+   Home sections each have a view-transition name (w-bill, w-chart...), so when a person's layout arrives they glide
+   to their new place and size instead of jumping. New sections bloom in from a soft blur; leaving ones dissolve.
+   While the app reshapes, a slow wash of colour drifts across the screen. All of it is off with reduced motion. */
+:root { --ease-glide: cubic-bezier(0.22, 1, 0.36, 1); }
+
+::view-transition-group(*) {
+  animation-duration: 760ms;
+  animation-timing-function: var(--ease-glide);
+}
+::view-transition-new(*):only-child {
+  animation: bloom-in 820ms var(--ease-glide) both;
+}
+::view-transition-old(*):only-child {
+  animation: dissolve-out 420ms ease-in both;
+}
+@keyframes bloom-in {
+  from { opacity: 0; transform: scale(0.94) translateY(0.6rem); filter: blur(10px); }
+  60% { filter: blur(0); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+@keyframes dissolve-out {
+  to { opacity: 0; transform: scale(0.97); filter: blur(6px); }
+}
+
+/* The wash: two soft, slowly drifting light fields in the app's own blues and a warm coral. Faint enough never to
+   change what can be read, and gone a moment after the last step lands. */
+:root[data-reshaping="true"] body::after {
+  content: "";
+  position: fixed;
+  inset: -20%;
+  z-index: 60;
+  pointer-events: none;
+  background:
+    radial-gradient(40% 35% at 20% 30%, rgb(98 179 230 / 0.32), transparent 70%),
+    radial-gradient(35% 30% at 80% 70%, rgb(240 128 108 / 0.24), transparent 70%),
+    radial-gradient(45% 40% at 60% 20%, rgb(0 74 128 / 0.18), transparent 70%);
+  mix-blend-mode: soft-light;
+  animation: wash 3.2s var(--ease-glide) both;
+}
+@keyframes wash {
+  0% { opacity: 0; transform: translate3d(-6%, 4%, 0) rotate(-4deg) scale(0.96); }
+  35% { opacity: 1; }
+  100% { opacity: 0; transform: translate3d(6%, -4%, 0) rotate(4deg) scale(1.06); }
+}
+
+.demo-banner { animation: bloom-in 700ms var(--ease-glide) both; }
+
+/* Demo people page: cards rise in one after another, avatars breathe, and choosing someone plays the model's reading. */
+.demo-person { animation: rise-in 700ms var(--ease-glide) both; animation-delay: calc(var(--i, 0) * 90ms); }
+.demo-avatar {
+  display: inline-flex;
+  width: 3.25rem;
+  height: 3.25rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.35);
+  background: radial-gradient(circle at 30% 25%, var(--a), var(--b) 75%);
+  box-shadow: 0 6px 18px -6px var(--b);
+  animation: breathe 5s ease-in-out infinite;
+}
+@keyframes breathe {
+  0%, 100% { transform: scale(1); box-shadow: 0 6px 18px -6px var(--b); }
+  50% { transform: scale(1.04); box-shadow: 0 10px 26px -8px var(--b); }
+}
+@keyframes rise-in {
+  from { opacity: 0; transform: translateY(1rem) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+.demo-reading { animation: bloom-in 700ms var(--ease-glide) both; }
+.demo-chip { animation: rise-in 520ms var(--ease-glide) both; animation-delay: calc(200ms + var(--i, 0) * 70ms); }
+.demo-bar-row { display: flex; flex-direction: column; gap: 0.25rem; animation: rise-in 520ms var(--ease-glide) both; animation-delay: calc(600ms + var(--i, 0) * 90ms); }
+.demo-bar-track { display: block; height: 0.6rem; overflow: hidden; border-radius: 9999px; background: var(--muted); }
+.demo-bar {
+  display: block;
+  height: 100%;
+  width: var(--w);
+  border-radius: inherit;
+  background: color-mix(in oklab, var(--primary) 45%, var(--muted));
+  transform-origin: left;
+  animation: grow 1100ms var(--ease-glide) both;
+  animation-delay: calc(700ms + var(--i, 0) * 90ms);
+}
+.demo-bar-win {
+  background: linear-gradient(90deg, var(--primary), color-mix(in oklab, var(--primary) 55%, #62b3e6), var(--primary));
+  background-size: 200% 100%;
+  animation: grow 1100ms var(--ease-glide) both, shimmer 2.6s 1.9s ease-in-out infinite;
+  animation-delay: 700ms, 1.9s;
+}
+@keyframes grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes shimmer { 0%, 100% { background-position: 0% 0; } 50% { background-position: 100% 0; } }
+.demo-verdict { animation: rise-in 700ms var(--ease-glide) both; animation-delay: 1500ms; }
+.demo-reason { animation: rise-in 520ms var(--ease-glide) both; animation-delay: calc(1700ms + var(--i, 0) * 160ms); }
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*), ::view-transition-new(*), ::view-transition-old(*) { animation: none !important; }
+  :root[data-reshaping="true"] body::after { display: none; }
+  .demo-banner, .demo-person, .demo-avatar, .demo-reading, .demo-chip, .demo-bar-row, .demo-bar, .demo-bar-win, .demo-verdict, .demo-reason { animation: none !important; }
+}
+:root[data-motion="reduced"]::view-transition-group(*),
+:root[data-motion="reduced"]::view-transition-new(*),
+:root[data-motion="reduced"]::view-transition-old(*) { animation: none !important; }
+:root[data-motion="reduced"][data-reshaping="true"] body::after { display: none; }
+:root[data-motion="reduced"] :is(.demo-banner, .demo-person, .demo-avatar, .demo-reading, .demo-chip, .demo-bar-row, .demo-bar, .demo-bar-win, .demo-verdict, .demo-reason) { animation: none !important; }

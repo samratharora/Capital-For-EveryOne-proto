@@ -24,6 +24,7 @@ export const DIAL_ROUTES = [
   "/account/settings",
   "/account/personalise",
   "/account/goals",
+  "/account/credit",
   // The Credit Learning Lab, its topic pages (one per slug in lib/learn/topics.ts; a test keeps them in step) and More.
   "/account/learn",
   "/account/learn/utilisation",

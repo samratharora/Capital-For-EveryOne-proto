@@ -33,6 +33,9 @@ import { useProfile } from "@/lib/profile/provider";
 import { dialStyle } from "@/lib/preferences/schema";
 import { spendPauseReply } from "@/lib/spend-pause/dial";
 import { splitCorrection } from "@/lib/voice/correction";
+import { interpret } from "@/lib/voice/interpret";
+import { socialTurn, type SocialTurn } from "@/lib/dial/social";
+import { creditHealth, creditSummary, isCreditBuildingQuestion } from "@/lib/finance/credit";
 import { useAccount } from "@/lib/state/account-context";
 import { useMode } from "@/lib/state/mode-context";
 import type { Mode } from "@/lib/types";
@@ -160,9 +163,9 @@ export function DialSessionProvider({ children }: { children: React.ReactNode })
       if (step.op === "remove") g.remove(step.goalId);
       return step.op === "create" ? "Goal added. You can see how it's going on the Goals screen." : "Goal removed.";
     }
-    if (!yes) return "Okay, I've left it as it was.";
-    if (step.type === "preferences" && save) return "Kept and saved. It will look like this next time.";
-    return step.type === "preferences" ? "Done. Say save it to keep this for next time, or undo to change it back." : "Done.";
+    if (!yes) return "No problem, I've left it as it was.";
+    if (step.type === "preferences" && save) return "Lovely, kept and saved. It'll look like this next time too.";
+    return step.type === "preferences" ? "Done! Say \"save it\" to keep it for next time, or \"undo\" if you change your mind." : "Done!";
   };
   const settleNowRef = useRef(settleNow);
   settleNowRef.current = settleNow;
@@ -181,6 +184,23 @@ export function DialSessionProvider({ children }: { children: React.ReactNode })
       const id = ++turnId.current;
       const L = live.current;
 
+      // The human side comes first, on the device: hello, how are you, thanks, a joke, a bad day, and care for anyone
+      // who sounds like they're struggling (lib/dial/social.ts). A "yes", "ok" or "keep it" answering an open preview
+      // is left to the rules so it still keeps the change.
+      const answeringOffer = !!offerRef.current && interpret(input).kind === "control";
+      const social: SocialTurn = answeringOffer ? { kind: "none" } : socialTurn(input, { hour: new Date().getHours(), turn: id });
+      if (social.kind === "reply") {
+        const items: ReplyItem[] = [{ kind: "say", text: social.reply.text }];
+        if (social.reply.link) items.push({ kind: "link", ...social.reply.link });
+        const done: DialTurn = { id, input, understood: "", corrected: false, status: "done", items, local: true };
+        setStats((s) => ({ ...s, turns: s.turns + 1, local: s.local + 1 }));
+        setTurn(done);
+        return done;
+      }
+      // "Hi Dial, did I pay Tesco twice?": say hello, then handle the request without the hello.
+      const request = social.kind === "greeting" ? social.rest : input;
+      const greeting = social.kind === "greeting" ? social.greeting : null;
+
       // A contradictory or vague request gets a question back, never a guess. A correction skips this.
       if (start.question) {
         const asked: DialTurn = { id, input, understood: "", corrected: false, status: "done", items: [{ kind: "say", text: start.question }], local: true };
@@ -196,7 +216,7 @@ export function DialSessionProvider({ children }: { children: React.ReactNode })
       try {
         const brain = await brainWithin(4000);
         if (id !== turnId.current) return null;
-        if (brain) found = await adaptationFor(input, brain);
+        if (brain) found = await adaptationFor(request, brain);
         if (id !== turnId.current) return null;
       } catch {
         // The rules below still run; nothing about the sentence is logged.
@@ -205,7 +225,7 @@ export function DialSessionProvider({ children }: { children: React.ReactNode })
       const months = [...new Set(L.transactions.map((t) => t.date.slice(0, 7)))].sort();
       const merchants = [...new Set(L.transactions.map((t) => t.merchant))];
       const planned = plan(
-        { text: input, replaces },
+        { text: request, replaces },
         {
           context: context.current,
           textSize: L.prefsApi.prefs.textSize,
@@ -214,6 +234,9 @@ export function DialSessionProvider({ children }: { children: React.ReactNode })
           months,
           today: DEMO_TODAY,
           localReply: (q) => {
+            // "How can I build my credit?" is answered from the card, with figures from lib/finance/credit.ts.
+            if (isCreditBuildingQuestion(q))
+              return { text: creditSummary(creditHealth(L.account, L.payments, DEMO_TODAY)), link: { label: "See your credit habits", href: "/account/credit" } };
             const sp = spendPauseReply(q, L.settings, L.spendPauseActivity);
             if (sp) return { text: sp.text, link: sp.action ? { label: sp.action.label, href: sp.action.href } : undefined };
             const paid = paymentReply(q, { account: L.account, transactions: L.transactions, payments: L.payments });
@@ -233,11 +256,11 @@ export function DialSessionProvider({ children }: { children: React.ReactNode })
       const gaveUp = steps.length > 0 && steps.every((s) => s.type === "unsupported");
       const corrected = !!replaces || splitCorrection(input) !== null;
       // When the situation layer took the sentence, its card says what it heard, so the rules' reading isn't shown too.
-      const working: DialTurn = { id, input, understood: gaveUp || adaptation ? "" : planned.understood, corrected, status: "working", items: [], local: adaptation ? true : planned.local };
+      const working: DialTurn = { id, input, understood: gaveUp || adaptation || (greeting && planned.understood.trim().toLowerCase() === request.trim().toLowerCase()) ? "" : planned.understood, corrected, status: "working", items: [], local: adaptation ? true : planned.local };
       setTurn(gaveUp ? { ...working, local: false } : working);
       if (gaveUp) {
         const route = (DIAL_ROUTES as readonly string[]).includes(L.pathname) ? L.pathname : null;
-        const fromModel = await askModelForSteps(input, { route, mode: L.mode, textSize: L.prefsApi.prefs.textSize }, { signal: controller.signal });
+        const fromModel = await askModelForSteps(request, { route, mode: L.mode, textSize: L.prefsApi.prefs.textSize }, { signal: controller.signal });
         if (id !== turnId.current) return null; // a newer turn replaced this one
         if (fromModel === "busy") steps = [{ type: "unsupported", say: "Groq is busy right now (its request limit), so I couldn't work that out. Try again in a few seconds, or use a plain command like make everything bigger." }];
         else if (fromModel && fromModel.length > 0) {
@@ -345,7 +368,8 @@ export function DialSessionProvider({ children }: { children: React.ReactNode })
       const reused = cache.stats.reused + cache.stats.joined - reusedBefore;
       const network = out.network + (gaveUp ? 1 : 0);
       setStats((s) => ({ turns: s.turns + 1, local: s.local + (network === 0 ? 1 : 0), network: s.network + network - reused, reused: s.reused + reused }));
-      const done: DialTurn = { ...working, local: working.local && !gaveUp && !usedModel, status: "done", items: out.items };
+      const items: ReplyItem[] = greeting ? [{ kind: "say", text: greeting }, ...out.items] : out.items;
+      const done: DialTurn = { ...working, local: working.local && !gaveUp && !usedModel, status: "done", items };
       setTurn(done);
       return done;
     },

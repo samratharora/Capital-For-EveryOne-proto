@@ -29,6 +29,7 @@ export const ROUTE_INFO: Record<DialRoute, { name: string; spoken: string }> = {
   "/account/settings": { name: "Settings", spoken: "display and voice settings" },
   "/account/personalise": { name: "Personalise", spoken: "personalising the app" },
   "/account/goals": { name: "Goals", spoken: "your goals" },
+  "/account/credit": { name: "Building your credit", spoken: "building your credit" },
   "/account/learn": { name: "Learning Lab", spoken: "the Credit Learning Lab" },
   "/account/learn/utilisation": { name: "Credit utilisation", spoken: "the credit utilisation lesson" },
   "/account/learn/minimum-payments": { name: "Minimum payments", spoken: "the minimum payments lesson" },
@@ -53,7 +54,7 @@ export const SECTION_INFO: Record<HomeSection, { name: string; spoken: string }>
 
 /** Said when someone asks for a place that doesn't exist. Lists only real screens. */
 export const OPENABLE =
-  "I can open Home, Spending, Pay, Spend Pause, Goals, the Learning Lab, Settings, Personalise and More, or show your bill, balance and credit, budget, spending categories, what's coming up, your progress or what Dial has noticed on Home.";
+  "I can open Home, Spending, Pay, Spend Pause, Goals, Building your credit, the Learning Lab, Settings, Personalise and More, or show your bill, balance and credit, budget, spending categories, what's coming up, your progress or what Dial has noticed on Home.";
 
 export interface Place {
   /** Matched against the normalised text (lower case, padded with spaces). */
@@ -91,6 +92,7 @@ export const PLACES: Place[] = [
   { re: / (personali[sz]e|personali[sz]ation|personali[sz]ing|make it (mine|yours|my own)|make the app (mine|my own)) /, to: "/account/personalise" },
   { re: / (settings|preferences|accessibility|display and voice|display options|voice options|voice and display) /, to: "/account/settings" },
   { re: / (goals?|savings goals?|saving goals?) /, to: "/account/goals" },
+  { re: / (build(ing)? (my |your )?credit|credit build(ing|er)|credit (health|habits)|improve (my )?credit) /, to: "/account/credit" },
   { re: / (credit scores?|credit ratings?|credit reports?|credit files?) /, to: "/account/learn", say: CREDIT_SCORE_NOTE },
   { re: / (credit quiz|quiz|test my knowledge) /, to: "/account/learn/quiz" },
   { re: / (learning lab|learn lab|credit learning lab|learning centre|learning center|lessons|learning) /, to: "/account/learn" },

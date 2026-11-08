@@ -156,12 +156,24 @@ describe("inferProfile", () => {
     }
   });
 
+  it("gives every person type its own home layout, and it never hides anything", () => {
+    const titles = new Set<string>();
+    for (const t of PERSON_TYPES) {
+      const offer = adaptationsFor(t, [])?.displayOffer;
+      expect(offer, t).not.toBeNull();
+      titles.add(offer!.title);
+      expect(offer!.actions.some((x) => x.type === "hide")).toBe(false);
+    }
+    expect(titles.size).toBe(PERSON_TYPES.length);
+  });
+
   it("only produces allowlisted cards and display actions", () => {
     for (const t of [null, ...PERSON_TYPES]) {
       const a = adaptationsFor(t, [...NEED_IDS]);
       expect(a.cards.every((c) => CARD_IDS.includes(c))).toBe(true);
       expect(a.cards.length).toBeLessThanOrEqual(3);
-      for (const action of a.displayOffer?.actions ?? []) expect(["density", "explanations", "show"]).toContain(action.type);
+      // Reorder, show, calm and bigger buttons only: a profile can never hide a section (lib/access/safety.ts).
+      for (const action of a.displayOffer?.actions ?? []) expect(["density", "explanations", "show", "moveToTop", "targets"]).toContain(action.type);
     }
   });
 });

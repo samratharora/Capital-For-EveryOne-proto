@@ -19,7 +19,7 @@ export const NO_STYLE: AnswerStyle = { plain: false, brief: false, stepByStep: f
 export const hasStyle = (s: AnswerStyle) => s.plain || s.brief || s.stepByStep || s.gentle;
 
 /** Home cards the tailored panel can show. An allowlist the client renders; nothing else can come from a profile. */
-export const CARD_IDS = ["free_help", "pay_on_time", "learn_credit", "check_subscriptions", "savings_goal", "spend_pause", "what_if", "talk_to_dial"] as const;
+export const CARD_IDS = ["free_help", "pay_on_time", "credit_habits", "learn_credit", "check_subscriptions", "savings_goal", "spend_pause", "what_if", "talk_to_dial"] as const;
 export type CardId = (typeof CARD_IDS)[number];
 
 export interface Adaptations {
@@ -48,13 +48,41 @@ export interface ProfileResult {
 const HELP_QUESTION = "Where can I get free help with money?";
 
 const BY_TYPE: Record<PersonType, Omit<Adaptations, "style" | "signpost" | "displayOffer">> = {
-  building: { cards: ["pay_on_time", "learn_credit"], dialSuggestions: ["When is my bill due?", "What is my minimum payment?", "Take me to the Learning Lab"] },
+  building: { cards: ["pay_on_time", "credit_habits", "learn_credit"], dialSuggestions: ["When is my bill due?", "What is my minimum payment?", "Take me to the Learning Lab"] },
   steady: { cards: ["check_subscriptions", "savings_goal"], dialSuggestions: ["Has any subscription gone up?", "What did I spend this month?", "Did I pay Tesco twice this month?"] },
   stretched: { cards: ["free_help", "spend_pause"], dialSuggestions: ["What is my minimum payment?", "When is my bill due?", HELP_QUESTION] },
   life_change: { cards: ["free_help", "pay_on_time"], dialSuggestions: ["When is my bill due?", "What is my minimum payment?", HELP_QUESTION] },
   clear_simple: { cards: ["talk_to_dial", "pay_on_time"], dialSuggestions: ["When is my bill due?", "How much do I owe?", "Make everything bigger"] },
   planner: { cards: ["what_if", "savings_goal"], dialSuggestions: ["Where does most of my money go?", "What if I spend £100 less next month?", "What did I spend last month?"] },
 };
+
+/**
+ * How Home is reshaped for each person type: which section leads, which appear, how busy it is. Only actions the Home
+ * screen already supports, and never a hide of the bill, Spend Pause or Dial's warnings (lib/access/safety.ts).
+ * Always offered as a preview with "Keep it", never applied by the model alone.
+ */
+const LAYOUTS: Record<PersonType, (calm: boolean) => NonNullable<Adaptations["displayOffer"]>> = {
+  building: (calm) => ({
+    title: "Your bill and your credit progress first",
+    actions: [{ type: "moveToTop", widget: "progress" }, { type: "moveToTop", widget: "bill" }, { type: "show", widget: "progress" }, { type: "show", widget: "payments" }, ...(calm ? CALM : [])],
+  }),
+  steady: () => ({
+    title: "What Dial noticed first, then what's coming up",
+    actions: [{ type: "moveToTop", widget: "upcoming" }, { type: "moveToTop", widget: "insights" }, { type: "show", widget: "upcoming" }, { type: "show", widget: "categories" }],
+  }),
+  stretched: () => ({
+    title: "Your bill first, Spend Pause close by, and a calmer screen",
+    actions: [{ type: "moveToTop", widget: "pause" }, { type: "moveToTop", widget: "bill" }, { type: "show", widget: "pause" }, ...CALM],
+  }),
+  life_change: () => ({ title: "A calmer home screen, one step at a time", actions: [{ type: "moveToTop", widget: "bill" }, ...CALM] }),
+  clear_simple: () => ({ title: "Simple view, fewer things, one step at a time", actions: [...CALM, { type: "targets", value: "large" }], mode: "simple" }),
+  planner: () => ({
+    title: "Your spending chart and categories up front",
+    actions: [{ type: "moveToTop", widget: "categories" }, { type: "moveToTop", widget: "chart" }, { type: "show", widget: "chart" }, { type: "show", widget: "categories" }, { type: "show", widget: "budget" }],
+    mode: "complex",
+  }),
+};
+const CALM: UiAction[] = [{ type: "density", value: "calm" }, { type: "explanations", value: "stepByStep" }];
 
 const SIGNPOST_NEEDS: NeedId[] = ["money_tight", "behind_bills", "income_change", "bereavement", "money_anxiety"];
 
@@ -72,15 +100,7 @@ export function adaptationsFor(type: PersonType | null, needs: NeedId[]): Adapta
   const cards = [...new Set<CardId>([...(signpost ? (["free_help"] as CardId[]) : []), ...base.cards])].slice(0, 3);
   const dialSuggestions = [...new Set([...base.dialSuggestions, ...(signpost ? [HELP_QUESTION] : [])])].slice(0, 4);
   const calm = type === "stretched" || type === "life_change" || type === "clear_simple" || has("reading") || has("money_anxiety");
-  const displayOffer = calm
-    ? {
-        title: "A calmer home screen, one step at a time",
-        actions: [{ type: "density", value: "calm" }, { type: "explanations", value: "stepByStep" }] as UiAction[],
-        ...(type === "clear_simple" ? { mode: "simple" as const } : {}),
-      }
-    : type === "planner"
-      ? { title: "A spending chart on your home screen", actions: [{ type: "show", widget: "chart" }] as UiAction[] }
-      : null;
+  const displayOffer = type ? LAYOUTS[type](calm) : calm ? LAYOUTS.life_change(true) : null;
   return { cards, dialSuggestions, style, signpost, displayOffer };
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, GraduationCap, LayoutGrid, RotateCcw, SlidersHorizontal, Sparkles, Target, UserRound } from "lucide-react";
+import { ChevronRight, TrendingUp, GraduationCap, LayoutGrid, RotateCcw, SlidersHorizontal, Sparkles, Target, UserRound } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { usePreferences } from "@/lib/preferences/provider";
@@ -10,6 +10,7 @@ export function useMoreLinks() {
   const { prefs } = usePreferences();
   return [
     { href: "/account/goals", label: "Goals", hint: "Track spending, debt and saving goals", Icon: Target },
+    { href: "/account/credit", label: "Building your credit", hint: "Where your card stands on the habits that help", Icon: TrendingUp },
     ...(prefs.learning === "on" ? [{ href: "/account/learn", label: "Learning Lab", hint: "Calculators, explainers and a quiz", Icon: GraduationCap }] : []),
     { href: "/account/settings", label: "Display and voice", hint: "Text size, contrast, Home sections, charts", Icon: SlidersHorizontal },
     { href: "/account/personalise", label: "Make it yours", hint: "Get a suggested style, preview it first", Icon: Sparkles },

@@ -56,7 +56,7 @@ export interface Preferences {
    * unset: not asked yet. on-device: only on this device. cloud: the browser's online speech service may be used.
    * typing: the person prefers not to use voice input.
    */
-  speechInput: "unset" | "on-device" | "cloud" | "typing";
+  speechInput: "unset" | "on-device" | "cloud" | "typing" | "whisper";
   /** "hide" swaps every chart on Home for its plain list of figures. The figures never disappear. */
   charts: "show" | "hide";
   /** Whether the Credit Learning Lab appears in navigation and on Home. The page itself always works. */
@@ -188,7 +188,7 @@ export function sanitize(input: unknown): Preferences {
     onboarding: oneOf(o.onboarding, ["unset", "done", "skipped"] as const, d.onboarding),
     answerStyle: oneOf(o.answerStyle, ["standard", "brief"] as const, d.answerStyle),
     listenMode: oneOf(o.listenMode, ["tap", "hold", "continuous"] as const, d.listenMode),
-    speechInput: oneOf(o.speechInput, ["unset", "on-device", "cloud", "typing"] as const, d.speechInput),
+    speechInput: oneOf(o.speechInput, ["unset", "on-device", "cloud", "typing", "whisper"] as const, d.speechInput),
     charts: oneOf(o.charts, ["show", "hide"] as const, d.charts),
     learning: oneOf(o.learning, ["on", "off"] as const, d.learning),
     reading: oneOf(o.reading, ["standard", "easy"] as const, d.reading),
@@ -360,6 +360,8 @@ export function describeActions(actions: UiAction[]): string {
             ? "allow my browser's online speech service to turn my voice into text"
             : a.value === "typing"
               ? "use typing instead of voice input"
+              : a.value === "whisper"
+                ? "use clearer recognition, which sends my recording to Groq to turn it into text"
               : "ask me before using the microphone";
       case "charts":
         return a.value === "hide" ? "show figures as lists instead of charts" : "show charts";

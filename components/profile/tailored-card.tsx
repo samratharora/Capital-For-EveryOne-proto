@@ -68,6 +68,8 @@ function TailoredRow({ id }: { id: CardId }) {
       );
     case "pay_on_time":
       return go("/account/pay", account.statementBalance > 0 && days >= 0 ? `Your bill is due ${formatLongDate(account.paymentDueDate)}` : "See your payments");
+    case "credit_habits":
+      return go("/account/credit", "Your credit-building habits");
     case "learn_credit":
       return go("/account/learn", "How credit works, in plain words");
     case "check_subscriptions":

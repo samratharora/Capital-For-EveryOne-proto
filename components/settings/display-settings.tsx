@@ -316,7 +316,7 @@ export function DisplaySettings() {
           legend="Turning your voice into text"
           hint="Your browser's speech service sends your voice to the browser maker (for example Google in Chrome) and works in Chrome and Edge. On this device keeps your voice here, but needs Chrome 139 or newer with the language pack and may not work yet. Typing always works."
           value={prefs.speechInput}
-          options={[{ value: "cloud", label: "Browser speech service" }, { value: "on-device", label: "On this device (experimental)" }, { value: "typing", label: "I'll type" }, { value: "unset", label: "Ask me first" }]}
+          options={[{ value: "cloud", label: "Browser speech service" }, { value: "whisper", label: "Clearer recognition (Groq)" }, { value: "on-device", label: "On this device (experimental)" }, { value: "typing", label: "I'll type" }, { value: "unset", label: "Ask me first" }]}
           onChange={set("speechInput")}
         />
         <Link href="/account/personalise" className={`${pill} self-start bg-accent text-accent-foreground`}>
